@@ -26,6 +26,7 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.handlers.AsyncHandler;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.retry.PredefinedRetryPolicies;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchAsync;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchAsyncClient;
@@ -113,6 +114,19 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
 
     private final boolean skipErrors;
 
+    private static Region getCloudWatchRegion()
+    {
+        //log.info("getting region for CloudWatch");
+        String targetEnv = System.getProperty("targetEnv");
+        //log.info("targetEnv = " + targetEnv);
+        //log.info("RegionUtils.getRegion(targetEnv) = " + RegionUtils.getRegion(targetEnv));
+        //log.info("Regions.getCurrentRegion() = " + Regions.getCurrentRegion());
+        Region cloudWatchRegion = ((targetEnv != null)?RegionUtils.getRegion(targetEnv):Regions.getCurrentRegion());
+        cloudWatchRegion = cloudWatchRegion != null?cloudWatchRegion:Region.getRegion(Regions.US_EAST_1);
+        log.info("cloudWatchRegion = " + cloudWatchRegion);
+        return cloudWatchRegion;
+    }
+
     /**
      * Constructor with default CloudWatch client and default DynamoDBAsync.
      *
@@ -123,7 +137,7 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
     @Deprecated
     public DynamoDBReplicationEmitter(final DynamoDBStreamsConnectorConfiguration configuration) {
         this(configuration.APP_NAME, configuration.DYNAMODB_ENDPOINT, configuration.REGION_NAME, configuration.DYNAMODB_DATA_TABLE_NAME,
-            (AmazonCloudWatchAsync) new AmazonCloudWatchAsyncClient(new DefaultAWSCredentialsProviderChain(), Executors.newFixedThreadPool(MAX_THREADS)).withRegion(Regions.getCurrentRegion() == null ? Region.getRegion(Regions.US_EAST_1) : Regions.getCurrentRegion()), new DefaultAWSCredentialsProviderChain());
+            (AmazonCloudWatchAsync) new AmazonCloudWatchAsyncClient(new DefaultAWSCredentialsProviderChain(), Executors.newFixedThreadPool(MAX_THREADS)).withRegion(getCloudWatchRegion()), new DefaultAWSCredentialsProviderChain());
     }
 
     /**
@@ -192,7 +206,7 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
         }
         final boolean setCloudWatch = CLOUDWATCH.compareAndSet(null, cloudwatch);
         if (setCloudWatch && cloudwatch != null) {
-            CLOUDWATCH.get().setRegion(Regions.getCurrentRegion() == null ? Region.getRegion(Regions.US_EAST_1) : Regions.getCurrentRegion());
+            CLOUDWATCH.get().setRegion(getCloudWatchRegion());
         }
         skipErrors = false; // TODO make configurable
     }

@@ -177,7 +177,8 @@ public class CommandLineInterface {
         if (isPublishCloudWatch) {
             kclCloudWatchClient = AmazonCloudWatchClientBuilder.standard()
                     .withCredentials(credentialsProvider)
-                    .withRegion(kclRegion.or(sourceRegion).getName()).build();
+                    //.withRegion(kclRegion.or(sourceRegion).getName()).build();
+                    .withRegion(destinationRegion.getName()).build();
         } else {
             kclCloudWatchClient = new NoopCloudWatch();
         }
